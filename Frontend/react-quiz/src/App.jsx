@@ -1,84 +1,123 @@
 import { useEffect, useState } from "react";
 
 function App() {
-  const [questions, setQuestions] = useState([]);
-  const [answers, setAnswers] = useState({});
-  const [results, setResults] = useState({});
-  const [score, setScore] = useState(null);
+  const [listeQuestions, setListeQuestions] = useState([]);
+  const [reponsesUtilisateur, setReponsesUtilisateur] = useState({});
+  const [verification, setVerification] = useState({});
+  const [noteFinale, setNoteFinale] = useState(null);
 
-  // Charger les questions depuis le backend
+
   useEffect(() => {
-    fetch("http://localhost:3000/questions")
-      .then(res => res.json())
-      .then(data => setQuestions(data))
-      .catch(err => console.error("Erreur de chargement:", err));
+    const chargerQuestions = async () => {
+      try {
+        const res = await fetch("http://localhost:3000/questions");
+        const data = await res.json();
+        setListeQuestions(data);
+      } catch (err) {
+        console.error("Erreur lors du chargement des questions :", err);
+      }
+    };
+
+    chargerQuestions();
   }, []);
 
-  // Gestion de la réponse choisie
-  const handleAnswerChange = (questionId, answer) => {
-    setAnswers(prev => ({ ...prev, [questionId]: answer }));
+  const choisirReponse = (idQuestion, valeur) => {
+    setReponsesUtilisateur(prev => ({
+      ...prev,
+      [idQuestion]: valeur
+    }));
   };
 
-  // Validation des réponses
-  const handleSubmit = async () => {
-    let newResults = {};
-    let correctCount = 0;
 
-    for (const question of questions) {
+  const validerQuiz = async () => {
+    let resultatTemporaire = {};
+    let bonnesReponses = 0;
+
+    for (let q of listeQuestions) {
       const res = await fetch("http://localhost:3000/answer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: question.id,
-          answer: answers[question.id]
+          id: q.id,
+          answer: reponsesUtilisateur[q.id]
         })
       });
+
       const data = await res.json();
-      newResults[question.id] = data.correct;
-      if (data.correct) correctCount++;
+      resultatTemporaire[q.id] = data.correct;
+
+      if (data.correct) bonnesReponses++;
     }
 
-    setResults(newResults);
-    setScore(`${correctCount} / ${questions.length}`);
+    setVerification(resultatTemporaire);
+    setNoteFinale(`${bonnesReponses} / ${listeQuestions.length}`);
   };
 
   return (
-    <div style={{ maxWidth: "600px", margin: "50px auto", fontFamily: "Arial" }}>
-      <h1>Quiz React + Express</h1>
+    <div style={{ maxWidth: 650, margin: "40px auto", fontFamily: "sans-serif" }}>
+      <h1 style={{ textAlign: "center" }}>Mini Quiz</h1>
 
-      {questions.map(q => (
-        <div key={q.id} style={{ marginBottom: "20px", padding: "10px", border: "1px solid #ccc", borderRadius: "8px" }}>
-          <h3>{q.question}</h3>
+      {listeQuestions.map((item) => (
+        <div
+          key={item.id}
+          style={{
+            border: "1px solid #ddd",
+            borderRadius: 10,
+            padding: 15,
+            marginBottom: 25,
+            boxShadow: "0 2px 6px rgba(0,0,0,0.1)"
+          }}
+        >
+          <p style={{ fontWeight: "bold" }}>{item.question}</p>
 
-          {q.options.map(opt => (
-            <label key={opt} style={{ display: "block", margin: "5px 0" }}>
+          {item.options.map((option) => (
+            <label key={option} style={{ display: "block", margin: "6px 0" }}>
               <input
                 type="radio"
-                name={`question-${q.id}`}
-                value={opt}
-                checked={answers[q.id] === opt}
-                onChange={() => handleAnswerChange(q.id, opt)}
+                name={`q-${item.id}`}
+                value={option}
+                checked={reponsesUtilisateur[item.id] === option}
+                onChange={() => choisirReponse(item.id, option)}
               />{" "}
-              {opt}
+              {option}
             </label>
           ))}
 
-          {results[q.id] !== undefined && (
-            <p style={{ color: results[q.id] ? "green" : "red" }}>
-              {results[q.id] ? " Correct" : " Incorrect"}
-            </p>
+          {verification[item.id] !== undefined && (
+            <div style={{ marginTop: 5 }}>
+              {verification[item.id] ? (
+                <span style={{ color: "green" }}>Correct</span>
+              ) : (
+                <span style={{ color: "black" }}>Incorrect</span>
+              )}
+            </div>
           )}
         </div>
       ))}
 
-      {questions.length > 0 && (
-        <button onClick={handleSubmit} style={{ padding: "10px 20px", fontSize: "16px" }}>
-          Valider mes réponses
-        </button>
+      {listeQuestions.length > 0 && (
+        <div style={{ textAlign: "center" }}>
+          <button
+            onClick={validerQuiz}
+            style={{
+              padding: "10px 25px",
+              fontSize: "16px",
+              cursor: "pointer",
+              borderRadius: "8px",
+              border: "none",
+              backgroundColor: "#6d6d6dff",
+              color: "white"
+            }}
+          >
+            Soumettre
+          </button>
+        </div>
       )}
 
-      {score && (
-        <h2 style={{ marginTop: "20px" }}> Score final : {score}</h2>
+      {noteFinale && (
+        <h2 style={{ textAlign: "center", marginTop: 25 }}>
+           Résultat final : {noteFinale}
+        </h2>
       )}
     </div>
   );
