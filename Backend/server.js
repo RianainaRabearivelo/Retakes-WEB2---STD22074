@@ -1,7 +1,9 @@
 const express = require('express');
 const app = express();
 const port = 3000;
+const cors = require('cors');
 
+app.use(cors());
 app.use(express.json());
 
 const questions = [
@@ -52,3 +54,4 @@ app.post('/answer', (req, res) => {
 app.listen(port, () => {
   console.log(`Serveur en ligne sur http://localhost:${port}`);
 });
+
